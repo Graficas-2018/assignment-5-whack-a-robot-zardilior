@@ -10,19 +10,19 @@ app = {
             // Scene
             app.scene = new THREE.Scene();
             app.width = window.innerWidth;
-            app.height = window.innerHeight;
+            app.height = window.innerHeight*.8;
 
             // Renderer
             app.renderer = new THREE.WebGLRenderer({
                 antialias:true,
                 canvas:document.getElementById('canvas')
             });
-            app.renderer.setSize(app.width,app.height*.8);
+            app.renderer.setSize(app.height,app.height);
 
             // Camera
-            app.camera = new THREE.PerspectiveCamera(45,app.width/app.height*.8,.1,20000);
-            app.camera.position.set(0,-70,50);
-            app.camera.lookAt(0,-20,0);
+            app.camera = new THREE.PerspectiveCamera(45,app.height/app.height,.1,20000);
+            app.camera.position.set(0,0,130);
+            app.camera.lookAt(0,0,0);
             app.scene.add(app.camera);
 
             // Lights
@@ -49,7 +49,7 @@ app = {
                 circleRadius,
                 32
             );
-            var material = new THREE.MeshPhongMaterial( { color: 0x000033 } );
+            var material = new THREE.MeshPhongMaterial( { color: 0x0000ff } );
             var tileInitial = -50+circleRadius*4;
             var tileLength = circleRadius*4;
             for(let i=0;i<app.holeColumns;i++){
