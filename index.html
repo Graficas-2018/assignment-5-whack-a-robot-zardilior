@@ -6,25 +6,36 @@
 
     <style>
         html,body,canvas{
-            width:90vh;
-            height:90vh;
             text-align:center;
             margin:0 auto;
+        }
+        canvas{
+            width:90vh;
+            height:90vh;
         }
         body{
             text-align:center
         }
     </style>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/97/three.min.js">
-    </script>
+    <script src="../libs/jquery-3.3.1/jquery-3.3.1.js"></script>
+    <script src="../libs/jquery-ui/jquery-ui.js"></script>
+
+    <script src="../libs/three.js/three.js"></script>
+    <script src="../libs/three.js/controls/OrbitControls.js"></script>
+    <script src="../libs/colorpicker/js/colorpicker.js"></script>
+
+    <script src="../libs/three.js/loaders/inflate.min.js"></script>
+    <script src="../libs/three.js/loaders/FBXLoader.js"></script>
+
+    <script src="../libs/three.js/utils/cloneFBX.js"></script>
     <script src="index.js">
     </script>
 </head>
 <body>
-    <h1 id="score"> Score: <span id="points">0</span> </h1>
+    <h1 id="pointsText"> Score: <span id="points">0</span> </h1>
    <canvas id="canvas">
-   </canvas> 
-   <button id="restart"> Start Again</button>
+   </canvas> <br><br>
+   <button id="startButton"> Start Again</button>
 </body>
 </html>
