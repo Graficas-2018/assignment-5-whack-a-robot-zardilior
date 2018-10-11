@@ -2,6 +2,10 @@ app = {
     holeRows : 5,
     holeColumns : 5,
     molesGroup : new THREE.Group(),
+    molesQueue:[],
+    moleTimer:0,
+    molesPerRound:10,
+    roundTime:120*100,
     moles: [],
     holes : [],
     mouse : {},
@@ -86,6 +90,8 @@ app = {
                     app.scene.add(hole);
                }
             }
+            app.tileLength = tileLength;
+            app.tileInitial = tileInitial;
         
         // Set up the raycaster
             app.raycaster = new THREE.Raycaster();
@@ -94,20 +100,20 @@ app = {
         // Render scene
 
         // Buttons and text
-            app.points.text = document.getElementById("pointsText");
+            app.points.text = document.getElementById("points");
             app.startButton = document.getElementById("startButton");
-            app.startButton.addEventListener("click",app.start);
+            app.startButton.addEventListener("click",app.restart);
     },
     start : function(){
         // Generate random numbers array filled with [timeoutTime,holex,holey,deletionTimeout]
         // Run timeout with last random number
         alert("start");
         app.stop = false;
+        for(var i=0;i<app.molesPerRound;i++){
+            app.molesQueue.push(Math.random()*app.roundTime/app.molesPerRound);
+        }
         app.run();
-        app.mole.draw(10,10,0);
-        app.mole.draw(-10,-10,0);
-        app.mole.draw(10,-10,0);
-        app.mole.draw(-10,10,0);
+        app.generateMole();
     },
     restart : function(){
         // Delete all moles
@@ -119,9 +125,22 @@ app = {
         //Start game
         app.start()
     },
+    generateMole : function(){
+       var x = Math.floor(Math.random()*app.holeRows)*app.tileLength + app.tileInitial;
+       var y = Math.floor(Math.random()*app.holeColumns)*app.tileLength + app.tileInitial;
+       var timeout = Math.random()*app.roundTime/app.molesPerRound*10;
+       app.molesQueue.shift();
+       app.mole.draw(x,y,timeout);
+    },
     run : function(){
         if( !app.stop )
              requestAnimationFrame(app.run);
+
+        if(app.molesQueue[0]< app.moleTimer){
+           app.generateMole();
+           app.moleTimer = 0; 
+        }
+        app.moleTimer+=1;
 
         // Render the scene
         app.renderer.render( app.scene, app.camera );
@@ -164,7 +183,7 @@ app = {
             this.deathAnimate.init({
                 interps:[{
                     keys:[0,.5,1], 
-                    values:[{z:0},{z:Math.PI/4},{z:Math.PI/3}],
+                    values:[{z:0},{z:Math.PI/4.5},{z:Math.PI/3}],
                     target:this.model.rotation
                 }],
                 loop:true,
@@ -177,6 +196,12 @@ app = {
             this.animationMixer["idle"].clipAction(idleAnim,this.model).play();
             this.animation = "idle";
             this.animate = app.mole.animate(this);
+            var obj = this;
+            console.log(deleteTimeout);
+            setTimeout(function(){
+                app.molesGroup.remove(obj.model);
+                console.log("remove");
+            },deleteTimeout)
         },
         onClick : function(mole){
             // Run dead animation
@@ -187,6 +212,7 @@ app = {
                 app.molesGroup.remove(mole);
                 app.scene.remove(mole);
                 console.log('removed');
+                app.points.add(10);
             },app.duration*1000);
         },
         draw : function(holeX,holeY,deleteTimeout){
@@ -205,7 +231,6 @@ app = {
                 var now = Date.now();
                 var deltat = now - currentTime;
                 currentTime = now;
-                console.log(deltat,mole.model.name);
 
                 if(mole && mole.animationMixer[mole.animation])
                 {
@@ -219,7 +244,11 @@ app = {
         },
         deleteAll : function(){
             // for each mole in moles
+            for(let mole of app.molesGroup.children){
                 // delete mole
+                app.molesGroup.remove(mole);
+            }
+            app.moles = [];
         }
     },
     onMouseDown : function(){
