@@ -110,7 +110,7 @@ app = {
         alert("start");
         app.stop = false;
         for(var i=0;i<app.molesPerRound;i++){
-            app.molesQueue.push(Math.random()*app.roundTime/app.molesPerRound);
+            app.molesQueue.push(Math.random()*app.roundTime/app.molesPerRound/2);
         }
         app.run();
         app.generateMole();
@@ -128,7 +128,7 @@ app = {
     generateMole : function(){
        var x = Math.floor(Math.random()*app.holeRows)*app.tileLength + app.tileInitial;
        var y = Math.floor(Math.random()*app.holeColumns)*app.tileLength + app.tileInitial;
-       var timeout = Math.random()*app.roundTime/app.molesPerRound*10;
+       var timeout = Math.random()*app.roundTime/app.molesPerRound*20;
        app.molesQueue.shift();
        app.mole.draw(x,y,timeout);
     },
