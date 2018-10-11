@@ -5,8 +5,8 @@ app = {
     moles: [],
     holes : [],
     mouse : {},
-    stop : true,
-    duration:10,
+    stop :false,
+    duration:5,
     setup : function(){
         // Initialize scene,camera,renderer and lights
         
@@ -40,29 +40,22 @@ app = {
         // LoadModel
             var loader = (new THREE.FBXLoader()).load('robot/robot_idle.fbx',function(obj){
                 app.fbx = obj;
-                app.mole.draw(10,10,0);
-                app.mole.draw(-10,-10,0);
-                app.fbx.animationMixer["idle"].clipAction( object.animations[ 0 ], app.fbx ).play();
+                app.fbx.animationMixer = {};
+                app.fbx.animationMixer["idle"] =  obj.animations[ 0 ];
 
                 loader.load( 'robot/robot_atk.fbx', function ( object ) 
                 {
-                    app.fbx.animationMixer["attack"] = new THREE.AnimationMixer( scene );
-                    app.fbx.animationMixer["attack"].clipAction(
-                        object.animations[ 0 ], app.fbx ).play();
+                    app.fbx.animationMixer["attack"] = obj.animations[ 0 ];
                 } );
 
                 loader.load( 'robot/robot_run.fbx', function ( object ) 
                 {
-                    app.fbx.animationMixer["run"] = new THREE.AnimationMixer( scene );
-                    app.fbx.animationMixer["run"].clipAction(
-                        object.animations[ 0 ], app.fbx ).play();
+                    app.fbx.animationMixer["run"] = obj.animations[ 0 ];
                 } );
 
                 loader.load( 'robot/robot_walk.fbx', function ( object ) 
                 {
-                    app.fbx.animationMixer["walk"] = new THREE.AnimationMixer( scene );
-                    app.fbx.animationMixer["walk"].clipAction(
-                        object.animations[ 0 ], app.fbx ).play();
+                    app.fbx.animationMixer["walk"] = obj.animations[ 0 ];
                 } );
             });            
 
@@ -104,8 +97,6 @@ app = {
             app.points.text = document.getElementById("pointsText");
             app.startButton = document.getElementById("startButton");
             app.startButton.addEventListener("click",app.start);
-
-        setTimeout(function(){app.renderer.render(app.scene,app.camera)},300);
     },
     start : function(){
         // Generate random numbers array filled with [timeoutTime,holex,holey,deletionTimeout]
@@ -113,6 +104,10 @@ app = {
         alert("start");
         app.stop = false;
         app.run();
+        app.mole.draw(10,10,0);
+        app.mole.draw(-10,-10,0);
+        app.mole.draw(10,-10,0);
+        app.mole.draw(-10,10,0);
     },
     restart : function(){
         // Delete all moles
@@ -125,18 +120,18 @@ app = {
         app.start()
     },
     run : function(){
-        // Animate all moles
-        app.moles.children.map((x)=>x.animate());
-
-        // Update the animations
-        KF.update();
+        if( !app.stop )
+             requestAnimationFrame(app.run);
 
         // Render the scene
         app.renderer.render( app.scene, app.camera );
 
-        var req = requestAnimationFrame(app.run);
-        if( app.stop )
-            cancelAnimationFrame(req);
+        // Update the animations
+        KF.update();
+
+        for(let mole of app.moles){
+            mole.animate();
+        }
     },
     points : {
         value : 0,
@@ -168,25 +163,31 @@ app = {
             this.deathAnimate = new KF.KeyFrameAnimator;
             this.deathAnimate.init({
                 interps:[{
-                    keys:[0,1], 
-                    values:[0,Math.PI/2],
-                    target:this.model.rotation.x
+                    keys:[0,.5,1], 
+                    values:[{z:0},{z:Math.PI/4},{z:Math.PI/3}],
+                    target:this.model.rotation
                 }],
-                loop:false,
+                loop:true,
                 duration:app.duration*1000,
-                easing:TWEEN.Easing.Cubic.Out,
+                easing:TWEEN.Easing.Cubic.Out
             });
+            this.animationMixer = Object.assign({},app.fbx.animationMixer);
+            var idleAnim = Object.assign({},this.animationMixer["idle"]);
+            this.animationMixer["idle"] = new THREE.AnimationMixer(app.scene);
+            this.animationMixer["idle"].clipAction(idleAnim,this.model).play();
+            this.animation = "idle";
+            this.animate = app.mole.animate(this);
         },
         onClick : function(mole){
             // Run dead animation
-            console.log(mole);
             var obj = app.moles[mole.name];
-            console.log(obj);
-            obj.deathAnimate.play();
+            obj.deathAnimate.start();
             // On dead animation finish add points and remove
             setTimeout(function(){
-                app.moleGroup.remove(obj);
-            },duration*1000);
+                app.molesGroup.remove(mole);
+                app.scene.remove(mole);
+                console.log('removed');
+            },app.duration*1000);
         },
         draw : function(holeX,holeY,deleteTimeout){
             // Draw at coordinates
@@ -195,24 +196,20 @@ app = {
             app.moles.push(mole)
             setTimeout(function(){app.renderer.render(app.scene,app.camera)},300);
 
-            // Add default animation
-            /* mole.mixer = app.fbx.mixer.clone();
-            mole.animate = app.mole.animate(mole);
-            mole.animation = "idle"; */
-
             // Add delete timeout
             setTimeout(function(){app.renderer.render(app.scene,app.camera)},300);
         },
         animate : function(mole){
-            currentTime = Date.now();
+            var currentTime = Date.now();
             return function(){ 
                 var now = Date.now();
                 var deltat = now - currentTime;
                 currentTime = now;
+                console.log(deltat,mole.model.name);
 
-                if(mole && mole.mixer[mole.animation])
+                if(mole && mole.animationMixer[mole.animation])
                 {
-                    mole.mixer[mole.animation].update(deltat * 0.001);
+                    mole.animationMixer[mole.animation].update(deltat * 0.005);
                 }
             }
         },
@@ -239,7 +236,6 @@ app = {
         app.raycaster.setFromCamera( app.mouse, app.camera );
         var intersects = app.raycaster.intersectObjects( app.molesGroup.children ,true);
         if(intersects[0]){
-           console.log(intersects[0].object.parent)
            app.mole.onClick(intersects[0].object.parent);
         }
         /*app.scene.add(
