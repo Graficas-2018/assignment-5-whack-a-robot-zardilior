@@ -1,10 +1,12 @@
 app = {
     holeRows : 5,
     holeColumns : 5,
-    moles : new THREE.Group(),
+    molesGroup : new THREE.Group(),
+    moles: [],
     holes : [],
     mouse : {},
     stop : true,
+    duration:10,
     setup : function(){
         // Initialize scene,camera,renderer and lights
         
@@ -64,7 +66,7 @@ app = {
                 } );
             });            
 
-            app.scene.add(app.moles);
+            app.scene.add(app.molesGroup);
         // Create plane
             var geometry = new THREE.PlaneGeometry( 100, 100);
             var material = new THREE.MeshPhongMaterial( {
@@ -97,12 +99,13 @@ app = {
             canvas.addEventListener('mousedown', app.onMouseDown);
 
         // Render scene
-            setTimeout(function(){app.renderer.render(app.scene,app.camera)},300);
 
         // Buttons and text
             app.points.text = document.getElementById("pointsText");
             app.startButton = document.getElementById("startButton");
             app.startButton.addEventListener("click",app.start);
+
+        setTimeout(function(){app.renderer.render(app.scene,app.camera)},300);
     },
     start : function(){
         // Generate random numbers array filled with [timeoutTime,holex,holey,deletionTimeout]
@@ -124,6 +127,9 @@ app = {
     run : function(){
         // Animate all moles
         app.moles.children.map((x)=>x.animate());
+
+        // Update the animations
+        KF.update();
 
         // Render the scene
         app.renderer.render( app.scene, app.camera );
@@ -153,19 +159,41 @@ app = {
         }
     },
     mole : {
-        onClick : function(){
+        construct : function(holeX,holeY,deleteTimeout){
+            this.model = cloneFbx(app.fbx);
+            this.model.position.set(holeX,holeY,0);
+            this.model.rotation.set(Math.PI/3,0,0);
+            this.model.scale.set(.02,.02,.02);
+            this.model.name = app.moles.length;
+            this.deathAnimate = new KF.KeyFrameAnimator;
+            this.deathAnimate.init({
+                interps:[{
+                    keys:[0,1], 
+                    values:[0,Math.PI/2],
+                    target:this.model.rotation.x
+                }],
+                loop:false,
+                duration:app.duration*1000,
+                easing:TWEEN.Easing.Cubic.Out,
+            });
+        },
+        onClick : function(mole){
             // Run dead animation
+            console.log(mole);
+            var obj = app.moles[mole.name];
+            console.log(obj);
+            obj.deathAnimate.play();
             // On dead animation finish add points and remove
+            setTimeout(function(){
+                app.moleGroup.remove(obj);
+            },duration*1000);
         },
         draw : function(holeX,holeY,deleteTimeout){
-            console.log("going");
             // Draw at coordinates
-            var mole = cloneFbx(app.fbx);
-            mole.position.set(holeX,holeY,0);
-            mole.rotation.set(Math.PI/3,0,0);
-            mole.scale.set(.02,.02,.02);
-
-            app.moles.add(mole)
+            var mole = new app.mole.construct(holeX,holeY,deleteTimeout);
+            app.molesGroup.add(mole.model);
+            app.moles.push(mole)
+            setTimeout(function(){app.renderer.render(app.scene,app.camera)},300);
 
             // Add default animation
             /* mole.mixer = app.fbx.mixer.clone();
@@ -201,7 +229,6 @@ app = {
         event.preventDefault();
         app.mouse.x = event.clientX - canvas.offsetLeft; 
         app.mouse.y = event.clientY - canvas.offsetTop;
-        console.log(app.mouse);
         app.mouse.x /= app.height;
         app.mouse.y /= app.height;
         app.mouse.x *= 2;
@@ -209,13 +236,11 @@ app = {
         app.mouse.x -= 1;
         app.mouse.y -= 1;
         app.mouse.y *=  -1;
-        console.log(event.clientX,event.clientY);
-        console.log(app.mouse);
         app.raycaster.setFromCamera( app.mouse, app.camera );
-        var intersects = app.raycaster.intersectObjects( app.moles.children ,true);
-        console.log(app.moles.children);
+        var intersects = app.raycaster.intersectObjects( app.molesGroup.children ,true);
         if(intersects[0]){
-           console.log("clicked"); 
+           console.log(intersects[0].object.parent)
+           app.mole.onClick(intersects[0].object.parent);
         }
         /*app.scene.add(
             new THREE.ArrowHelper( 
